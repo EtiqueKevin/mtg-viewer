@@ -28,16 +28,27 @@ class ApiCardController extends AbstractController
     public function cardAll(Request $request): Response
     {
         $setCode = $request->query->get('setCode');
+        $page = $request->query->get('page', "1");
+        $limit = $request->query->get('limit', "100");
+        $page = intval($page);
+        $limit = intval($limit);
+
         $queryBuilder = $this->entityManager->getRepository(Card::class)->createQueryBuilder('c');
         
         if ($setCode) {
             $queryBuilder->where('c.setCode = :setCode')
+                        ->setFirstResult(($page - 1) * $limit)
+                        ->setMaxResults($limit)
                         ->setParameter('setCode', $setCode);
         }
         
         $cards = $queryBuilder->getQuery()->getResult();
+        $res = [
+            'totalNumber' => count($cards),
+            'cards' => $cards,
+        ];
         $this->logger->info('Liste des cartes', ['setCode' => $setCode ?? 'all']);
-        return $this->json($cards);
+        return $this->json($res);
     }
 
 
