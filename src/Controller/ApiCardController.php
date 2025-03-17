@@ -22,8 +22,10 @@ class ApiCardController extends AbstractController
     ) {
     }
     #[Route('/all', name: 'List all cards', methods: ['GET'])]
-    #[OA\Put(description: 'Return all cards in the database')]
+    #[OA\Get(description: 'Return all cards in the database')]
     #[OA\Parameter(name: 'setCode', description: 'Filter by set code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
+    #[OA\Parameter(name: 'page', description: 'Page number', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1))]
+    #[OA\Parameter(name: 'limit', description: 'Number of cards per page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 100))]
     #[OA\Response(response: 200, description: 'List all cards')]
     public function cardAll(Request $request): Response
     {
@@ -37,23 +39,34 @@ class ApiCardController extends AbstractController
         
         if ($setCode) {
             $queryBuilder->where('c.setCode = :setCode')
-                        ->setFirstResult(($page - 1) * $limit)
-                        ->setMaxResults($limit)
                         ->setParameter('setCode', $setCode);
         }
-        
-        $cards = $queryBuilder->getQuery()->getResult();
+
+        $totalQuery = clone $queryBuilder;
+        $totalNumber = $totalQuery->select('COUNT(c.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+            
+        $cards = $queryBuilder
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
         $res = [
-            'totalNumber' => count($cards),
+            'currentPage' => $page,
+            'totalPages' => ceil($totalNumber / $limit),
+            'limit' => $limit,
             'cards' => $cards,
         ];
-        $this->logger->info('Liste des cartes', ['setCode' => $setCode ?? 'all']);
+        
+        $this->logger->info('Liste des cartes', ['setCode' => $setCode ?? 'all', 'page' => $page, 'limit' => $limit]);
         return $this->json($res);
     }
 
 
     #[Route('/setCode', name: 'Get set Codes', methods: ['GET'])]
-    #[OA\Put(description: 'Return all set codes in the database')]
+    #[OA\Get(description: 'Return all set codes in the database')]
     #[OA\Response(response: 200, description: 'List all set codes')]
     public function cardSetCode(): Response
     {
@@ -71,7 +84,7 @@ class ApiCardController extends AbstractController
 
     #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
     #[OA\Parameter(name: 'uuid', description: 'UUID of the card', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
-    #[OA\Put(description: 'Get a card by UUID')]
+    #[OA\Get(description: 'Get a card by UUID')]
     #[OA\Response(response: 200, description: 'Show card')]
     #[OA\Response(response: 404, description: 'Card not found')]
     public function cardShow(string $uuid): Response
@@ -88,7 +101,7 @@ class ApiCardController extends AbstractController
     #[Route('/search/{name}', name: 'Search cards', methods: ['GET'])]
     #[OA\Parameter(name: 'name', description: 'Name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
     #[OA\Parameter(name: 'setCode', description: 'Filter by set code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
-    #[OA\Put(description: 'Search cards by name')]
+    #[OA\Get(description: 'Search cards by name')]
     #[OA\Response(response: 200, description: 'Show cards')]
     #[OA\Response(response: 404, description: 'Cards not found')]
     public function cardSearch(string $name, Request $request): Response
