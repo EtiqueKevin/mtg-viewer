@@ -38,7 +38,7 @@ class ImportCardCommand extends Command
 
 
         ini_set('max_execution_time', 0);
-        ini_set('memory_limit', '2G');
+        ini_set('memory_limit', '4G');
         // On récupère le temps actuel
         $io = new SymfonyStyle($input, $output);
         $filepath = __DIR__ . '/../../data/cards.csv';
@@ -74,10 +74,6 @@ class ImportCardCommand extends Command
                 $progressIndicator->advance();
             }
 
-            if ($i % 30000 === 0) {
-                $this->logger->info(sprintf('Imported %d cards', $i));
-                break;
-            }
         }
         // Toujours flush en sorti de boucle
         $this->entityManager->flush();
