@@ -33,6 +33,23 @@ onMounted(() => {
         </div>
     </div>
     <div>
-        <router-link :to="{ name: 'all-cards' }">Retourner à la liste complète</router-link>
+        <router-link :to="{ name: 'all-cards' }" class="router">Retourner à la liste complète</router-link>
     </div>
 </template>
+
+<style scoped>
+.card {
+    border: 1px solid black;
+    padding: 1em;
+    margin: 1em;
+}
+
+.router{
+    margin: 1em;
+    text-decoration: none;
+}
+
+.router:hover {
+    text-decoration: underline;
+}
+</style>

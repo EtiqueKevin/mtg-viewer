@@ -25,16 +25,19 @@ class ImportCardCommand extends Command
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly LoggerInterface        $logger,
-        private array                           $csvHeader = []
-    )
-    {
+        private readonly LoggerInterface $logger,
+        private array $csvHeader = []
+    ) {
         parent::__construct();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        ini_set('memory_limit', '2G');
+        $this->logger->info('Start importing cards');
+
+
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '4G');
         // On récupère le temps actuel
         $io = new SymfonyStyle($input, $output);
         $filepath = __DIR__ . '/../../data/cards.csv';
@@ -46,6 +49,7 @@ class ImportCardCommand extends Command
         $this->logger->info('Importing cards from ' . $filepath);
         if ($handle === false) {
             $io->error('File not found');
+            $this->logger->error('File not found');
             return Command::FAILURE;
         }
 
@@ -79,6 +83,9 @@ class ImportCardCommand extends Command
         $end = microtime(true);
         $timeElapsed = $end - $start;
         $io->success(sprintf('Imported %d cards in %.2f seconds', $i, $timeElapsed));
+
+        $this->logger->info('End importing cards');
+
         return Command::SUCCESS;
     }
 
@@ -91,7 +98,7 @@ class ImportCardCommand extends Command
         return array_combine($this->csvHeader, $row);
     }
 
-    private function addCard(array $row)
+    private function addCard(array $row): void
     {
         $uuid = $row['uuid'];
 
@@ -106,6 +113,5 @@ class ImportCardCommand extends Command
         $card->setText($row['text']);
         $card->setType($row['type']);
         $this->entityManager->persist($card);
-
     }
 }
