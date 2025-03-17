@@ -1,17 +1,24 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { fetchAllCards } from '../services/cardService';
+import { onMounted, ref, watch } from 'vue';
+import { fetchAllCards, fetchAllSetCode } from '../services/cardService';
 
 const cards = ref([]);
 const loadingCards = ref(true);
+const setCodes = ref([]);
+const selectedSetCode = ref('');
 
 async function loadCards() {
     loadingCards.value = true;
-    cards.value = await fetchAllCards();
+    cards.value = await fetchAllCards({ setCode: selectedSetCode.value });
     loadingCards.value = false;
 }
 
-onMounted(() => {
+watch(selectedSetCode, () => {
+    loadCards();
+});
+
+onMounted(async() => {
+    setCodes.value = await fetchAllSetCode();
     loadCards();
 });
 
@@ -20,6 +27,10 @@ onMounted(() => {
 <template>
     <div>
         <h1>Toutes les cartes</h1>
+        <select v-model="selectedSetCode">
+            <option value="">Tous les sets</option>
+            <option v-for="setCode in setCodes" :key="setCode">{{ setCode }}</option>
+        </select>
     </div>
     <div class="card-list">
         <div v-if="loadingCards">Loading...</div>

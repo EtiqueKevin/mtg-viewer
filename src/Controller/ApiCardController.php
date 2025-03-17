@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -22,12 +23,39 @@ class ApiCardController extends AbstractController
     }
     #[Route('/all', name: 'List all cards', methods: ['GET'])]
     #[OA\Put(description: 'Return all cards in the database')]
+    #[OA\Parameter(name: 'setCode', description: 'Filter by set code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
     #[OA\Response(response: 200, description: 'List all cards')]
-    public function cardAll(): Response
+    public function cardAll(Request $request): Response
     {
-        $cards = $this->entityManager->getRepository(Card::class)->findAll();
-        $this->logger->info('Liste de toutes les cartes');
+        $setCode = $request->query->get('setCode');
+        $queryBuilder = $this->entityManager->getRepository(Card::class)->createQueryBuilder('c');
+        
+        if ($setCode) {
+            $queryBuilder->where('c.setCode = :setCode')
+                        ->setParameter('setCode', $setCode);
+        }
+        
+        $cards = $queryBuilder->getQuery()->getResult();
+        $this->logger->info('Liste des cartes', ['setCode' => $setCode ?? 'all']);
         return $this->json($cards);
+    }
+
+
+    #[Route('/setCode', name: 'Get set Codes', methods: ['GET'])]
+    #[OA\Put(description: 'Return all set codes in the database')]
+    #[OA\Response(response: 200, description: 'List all set codes')]
+    public function cardSetCode(): Response
+    {
+        $setCodes = $this->entityManager->getRepository(Card::class)
+            ->createQueryBuilder('c')
+            ->select('c.setCode')
+            ->distinct()
+            ->getQuery()
+            ->getResult();
+
+        $setCodes = array_map(fn($setCode) => $setCode['setCode'], $setCodes);
+        $this->logger->info('Liste des codes de set');
+        return $this->json($setCodes);
     }
 
     #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
@@ -39,9 +67,42 @@ class ApiCardController extends AbstractController
     {
         $card = $this->entityManager->getRepository(Card::class)->findOneBy(['uuid' => $uuid]);
         if (!$card) {
+            $this->logger->error('Carte non trouvée', ['uuid' => $uuid]);
             return $this->json(['error' => 'Card not found'], 404);
         }
         $this->logger->info('Carte affichée', ['uuid' => $uuid]);
         return $this->json($card);
+    }
+
+    #[Route('/search/{name}', name: 'Search cards', methods: ['GET'])]
+    #[OA\Parameter(name: 'name', description: 'Name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
+    #[OA\Parameter(name: 'setCode', description: 'Filter by set code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
+    #[OA\Put(description: 'Search cards by name')]
+    #[OA\Response(response: 200, description: 'Show cards')]
+    #[OA\Response(response: 404, description: 'Cards not found')]
+    public function cardSearch(string $name, Request $request): Response
+    {
+        $setCode = $request->query->get('setCode');
+        $queryBuilder = $this->entityManager->getRepository(Card::class)
+            ->createQueryBuilder('c')
+            ->where('LOWER(c.name) LIKE LOWER(:name)')
+            ->setParameter('name', '%' . $name . '%');
+
+        if ($setCode) {
+            $queryBuilder->andWhere('c.setCode = :setCode')
+                        ->setParameter('setCode', $setCode);
+        }
+
+        $cards = $queryBuilder
+            ->setMaxResults(20)
+            ->getQuery()
+            ->getResult();
+    
+        if (empty($cards)) {
+            $this->logger->error('Aucune carte trouvée', ['name' => $name, 'setCode' => $setCode ?? 'all']);
+            return $this->json(['error' => 'No cards found'], 404);
+        }
+        $this->logger->info('Cartes trouvées', ['name' => $name, 'setCode' => $setCode ?? 'all']);
+        return $this->json($cards);
     }
 }
