@@ -3,7 +3,18 @@ import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { fetchAllCards, fetchAllSetCode } from '../services/cardService';
 
-// cartes
+// Initialize route and router
+const route = useRoute();
+const router = useRouter();
+
+// Initialize pagination
+const currentPage = ref(1);
+
+// Initialize set codes
+const setCodes = ref([]);
+const selectedSetCode = ref('');
+
+// Initialize cards
 const data = ref([]);
 const loadingCards = ref(true);
 
@@ -13,44 +24,35 @@ async function loadCards() {
     loadingCards.value = false;
 }
 
-
-// codes des sets
-const setCodes = ref([]);
-const selectedSetCode = ref('');
-
 watch(selectedSetCode, () => {
     currentPage.value = 1;
     router.push({ query: { page: currentPage.value, setCode: selectedSetCode.value } });
     loadCards();
 });
 
-// pagination
-const currentPage = ref(1);
-const route = useRoute();
-const router = useRouter();
-
 watch([currentPage], () => {
     router.push({ query: { page: currentPage.value, setCode: selectedSetCode.value } });
     loadCards();
 });
 
-// initialisation
-onMounted(async() => {
-    currentPage.value = parseInt(route.query.page) || 1;
+onMounted(async () => {
+    currentPage.value = parseInt(route.query.page, 10) || 1;
     selectedSetCode.value = route.query.setCode || '';
     setCodes.value = await fetchAllSetCode();
-    loadCards();
+    await loadCards();
 });
-
 </script>
 
 <template>
     <div class="title">
         <h1>Toutes les cartes</h1>
-        <select v-model="selectedSetCode">
-            <option value="">Tous les sets</option>
-            <option v-for="setCode in setCodes" :key="setCode">{{ setCode }}</option>
-        </select>
+        <div class="select-container">
+            <label for="set-select">Sélectionner un set</label>
+            <select id="set-select" v-model="selectedSetCode">
+                <option value="">Tous les sets</option>
+                <option v-for="setCode in setCodes" :key="setCode">{{ setCode }}</option>
+            </select>
+        </div>
     </div>
     <div class="card-list">
         <div v-if="loadingCards">Loading...</div>
@@ -63,9 +65,9 @@ onMounted(async() => {
         </div>
     </div>
     <div class="pagination">
-        <button @click="currentPage--" :disabled="currentPage <= 1">Précédent</button>
+        <button type="button" @click="currentPage--" :disabled="currentPage <= 1">Précédent</button>
         <span>{{ currentPage }} / {{ data.totalPages }}</span>
-        <button @click="currentPage++" :disabled="currentPage >= data.totalPages">Suivant</button>
+        <button type="button" @click="currentPage++" :disabled="currentPage >= data.totalPages">Suivant</button>
     </div>
 </template>
 
@@ -113,5 +115,15 @@ select {
     padding: 5px;
     border-radius: 5px;
     border: 1px solid #ccc;
+}
+.select-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.select-container label {
+    font-size: 0.9em;
+    color: #666;
 }
 </style>

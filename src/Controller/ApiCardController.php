@@ -36,7 +36,7 @@ class ApiCardController extends AbstractController
         $limit = intval($limit);
 
         $queryBuilder = $this->entityManager->getRepository(Card::class)->createQueryBuilder('c');
-        
+
         if ($setCode) {
             $queryBuilder->where('c.setCode = :setCode')
                         ->setParameter('setCode', $setCode);
@@ -46,7 +46,7 @@ class ApiCardController extends AbstractController
         $totalNumber = $totalQuery->select('COUNT(c.id)')
             ->getQuery()
             ->getSingleScalarResult();
-            
+
         $cards = $queryBuilder
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit)
@@ -59,7 +59,7 @@ class ApiCardController extends AbstractController
             'limit' => $limit,
             'cards' => $cards,
         ];
-        
+
         $this->logger->info('Liste des cartes', ['setCode' => $setCode ?? 'all', 'page' => $page, 'limit' => $limit]);
         return $this->json($res);
     }
@@ -121,7 +121,7 @@ class ApiCardController extends AbstractController
             ->setMaxResults(20)
             ->getQuery()
             ->getResult();
-    
+
         if (empty($cards)) {
             $this->logger->error('Aucune carte trouvée', ['name' => $name, 'setCode' => $setCode ?? 'all']);
             return $this->json(['error' => 'No cards found'], 404);

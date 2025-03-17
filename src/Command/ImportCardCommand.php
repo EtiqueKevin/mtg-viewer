@@ -25,10 +25,9 @@ class ImportCardCommand extends Command
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly LoggerInterface        $logger,
-        private array                           $csvHeader = []
-    )
-    {
+        private readonly LoggerInterface $logger,
+        private array $csvHeader = []
+    ) {
         parent::__construct();
     }
 
@@ -73,7 +72,6 @@ class ImportCardCommand extends Command
                 $this->entityManager->clear();
                 $progressIndicator->advance();
             }
-
         }
         // Toujours flush en sorti de boucle
         $this->entityManager->flush();
@@ -100,7 +98,7 @@ class ImportCardCommand extends Command
         return array_combine($this->csvHeader, $row);
     }
 
-    private function addCard(array $row)
+    private function addCard(array $row): void
     {
         $uuid = $row['uuid'];
 
@@ -115,6 +113,5 @@ class ImportCardCommand extends Command
         $card->setText($row['text']);
         $card->setType($row['type']);
         $this->entityManager->persist($card);
-
     }
 }
