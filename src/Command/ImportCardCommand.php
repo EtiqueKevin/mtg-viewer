@@ -34,6 +34,10 @@ class ImportCardCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->logger->info('Start importing cards');
+
+
+        ini_set('max_execution_time', 0);
         ini_set('memory_limit', '2G');
         // On récupère le temps actuel
         $io = new SymfonyStyle($input, $output);
@@ -46,6 +50,7 @@ class ImportCardCommand extends Command
         $this->logger->info('Importing cards from ' . $filepath);
         if ($handle === false) {
             $io->error('File not found');
+            $this->logger->error('File not found');
             return Command::FAILURE;
         }
 
@@ -68,6 +73,11 @@ class ImportCardCommand extends Command
                 $this->entityManager->clear();
                 $progressIndicator->advance();
             }
+
+            if ($i % 30000 === 0) {
+                $this->logger->info(sprintf('Imported %d cards', $i));
+                break;
+            }
         }
         // Toujours flush en sorti de boucle
         $this->entityManager->flush();
@@ -79,6 +89,9 @@ class ImportCardCommand extends Command
         $end = microtime(true);
         $timeElapsed = $end - $start;
         $io->success(sprintf('Imported %d cards in %.2f seconds', $i, $timeElapsed));
+
+        $this->logger->info('End importing cards');
+
         return Command::SUCCESS;
     }
 

@@ -26,6 +26,7 @@ class ApiCardController extends AbstractController
     public function cardAll(): Response
     {
         $cards = $this->entityManager->getRepository(Card::class)->findAll();
+        $this->logger->info('Liste de toutes les cartes');
         return $this->json($cards);
     }
 
@@ -40,6 +41,7 @@ class ApiCardController extends AbstractController
         if (!$card) {
             return $this->json(['error' => 'Card not found'], 404);
         }
+        $this->logger->info('Carte affichée', ['uuid' => $uuid]);
         return $this->json($card);
     }
 }
